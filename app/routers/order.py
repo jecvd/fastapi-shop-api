@@ -2,6 +2,7 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import update
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -22,10 +23,23 @@ def create_order(
         product = db.query(Product).filter(Product.id == db_order.product_id).first()
         if not product:
             raise HTTPException(status_code=400,detail="商品不存在")
-        if product.stock < db_order.quantity:
-            raise HTTPException(400,f"商品{product.name}库存不足")
-        #减库存
-        product.stock = product.stock - db_order.quantity
+        result = db.execute(
+            update(Product)
+            .where(Product.id==db_order.product_id)
+            .where(Product.version==product.version)
+            .where(Product.stock>=db_order.quantity)
+            .values(
+                stock = Product.stock - db_order.quantity,
+                version = Product.version + 1
+            )
+        )
+        if result.rowcount == 0:
+            raise HTTPException(status_code=409,detail=f"商品{product.name}库存不足或已被修改，请重试")
+
+        # if product.stock < db_order.quantity:
+        #     raise HTTPException(400,f"商品{product.name}库存不足")
+        # #减库存
+        # product.stock = product.stock - db_order.quantity
         #算这一项的总金额
         total = total + db_order.quantity * product.price
         #把明细收集起来，先不commit

@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models import Product
 from app.schemas import ProductOut, ProductCreate, ProductUpdate
+from app.core.cache import get_product_with_rebuild, delete_cached
+
 
 router = APIRouter(prefix="/api/products",tags=["商品"])
 
@@ -44,10 +46,14 @@ def get_product(
         product_id:int,
         db:Session = Depends(get_db)
 ):
-    commodity = db.query(Product).filter(Product.id==product_id).first()
-    if not commodity:
+    def db_query(pid):
+        return db.query(Product).filter(Product.id==pid).first()
+    data = get_product_with_rebuild(product_id,db_query)
+    if data is None:
         raise HTTPException(status_code=404,detail="商品不存在")
-    return commodity
+    if isinstance(data,dict):
+        return ProductOut(**data)
+    return data
 
 @router.put("/{product_id}",response_model=ProductOut)
 def update_product(
@@ -73,7 +79,7 @@ def update_product(
 
     db.commit()
     db.refresh(db_product)
-
+    delete_cached(f"product{product_id}")
     return db_product
 
 @router.delete("/{product_id}")
@@ -86,6 +92,7 @@ def delete_product(
         raise HTTPException(status_code=404,detail="商品不存在")
     db.delete(product)
     db.commit()
+    delete_cached(f"product:{product_id}")
     return {"detail": "删除成功"}
 
 
