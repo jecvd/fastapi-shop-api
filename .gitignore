@@ -6,6 +6,9 @@ __pycache__/
 .Python
 *.so
 
+# 环境密钥
+.env
+
 # 虚拟环境
 venv/
 env/

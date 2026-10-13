@@ -79,7 +79,7 @@ def update_product(
 
     db.commit()
     db.refresh(db_product)
-    delete_cached(f"product{product_id}")
+    delete_cached(f"product:{product_id}")
     return db_product
 
 @router.delete("/{product_id}")

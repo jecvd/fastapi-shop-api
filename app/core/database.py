@@ -6,7 +6,8 @@ from app.core.config import DATABASE_URL
 #1.创建数据库引擎
 engine = create_engine(
     DATABASE_URL,
-    echo = True
+    pool_pre_ping = True,
+    pool_recycle = 3600
 )
 
 #2.会话工厂
