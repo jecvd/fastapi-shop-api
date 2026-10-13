@@ -16,7 +16,7 @@ def test_order_insufficient_stock(client,auth_headers):
     product_resp = client.post("/api/products/", json={"name": "苹果", "price": 20, "stock": 5})
     product_id = product_resp.json()["id"]
     response = client.post("/api/orders/", json={"items": [{"product_id":product_id, "quantity": 100}]}, headers=auth_headers)
-    assert response.status_code==400
+    assert response.status_code==409
     assert "库存不足" in response.json()["detail"]
 
 def test_order_list(client,auth_headers):
